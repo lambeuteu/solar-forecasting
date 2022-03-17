@@ -2,7 +2,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
-from transform_output_format import get_4D_output
+from transform_output_format import get_4D_output, get_2D_output
 from sklearn.base import clone
 from sklearn.linear_model import LinearRegression
 from sklearn.linear_model import Lasso
@@ -13,6 +13,7 @@ from sklearn.linear_model import LassoLars
 from sklearn.linear_model import PassiveAggressiveRegressor
 from sklearn.linear_model import SGDRegressor
 from utils import load_data_input
+import pickle
 # %%
 def get_models(models=dict()):
 	# linear models
@@ -59,20 +60,6 @@ GHI,CLS,SZA,SAA,dates = load_data_input("X_train_copernicus.npz")
 y_train_csv = pd.read_csv('y_train_zRvpCeO_nQsYtKN.csv')
 y_train = get_4D_output(y_train_csv)
 # %%
-model_1 = LinearRegression()
-X = np.random.random((10,5))
-y = np.random.random((10,4))
-# %%
-model_1.fit(X,y)
-# %%
-GHI
-# %%
-seq = GHI[0]
-seq_ravel = seq.reshape(4,81*81)
-print(seq_ravel.shape)
-# %%
-plt.imshow(seq_ravel.reshape(4,81,81)[0])
-# %%
 def prepare_data(sequence):
     """_summary_
 
@@ -80,15 +67,33 @@ def prepare_data(sequence):
         sequence (array(nb_examples,nb_img,81,81)): _description_
     """
     nb_samples, nb_img, size1, size2 = sequence.shape
-    return sequence.reshape((nb_samples*size1*size2,nb_img))
+    seq_swap = sequence.swapaxes(1,2).swapaxes(2,3)
+    return seq_swap.reshape((nb_samples*size1*size2,nb_img))
 # %%
 model= LinearRegression()
-X_train = prepare_data(GHI[:,:,15:66,15:66])
+GHI_train = prepare_data(GHI[:,:,15:66,15:66])
+CLS_train = prepare_data(CLS[:,:,15:66,15:66])
+X_train = np.concatenate([GHI_train, CLS_train],axis=1)
 y_train_reshape = prepare_data(y_train)
 # %%
 model.fit(X_train,y_train_reshape)
 # %%
-model.coef_.shape
+model.coef_
+model.intercept_
 # %%
+filename = 'linearreg_model.sav'
+pickle.dump(model, open(filename, 'wb'))
+# %%
+loaded_model = pickle.load(open(filename, 'rb'))
 GHI_test,CLS_test,SZA_test,SAA_test,dates_test = load_data_input("X_test_copernicus.npz")
+# %%
+GHI_test_r = prepare_data(GHI_test[:,:,15:66,15:66])
+CLS_test_r = prepare_data(GHI_test[:,:,15:66,15:66])
+X_test = np.concatenate([GHI_test_r, CLS_test_r], axis=1)
+# %%
+y_predict = model.predict(X_test)
+y_preds = y_predict.reshape(1841,4,51,51)
+# %%
+y_preds_2D = get_2D_output(y_preds)
+y_preds_2D.to_csv('linearreg.csv', index=False)
 # %%
