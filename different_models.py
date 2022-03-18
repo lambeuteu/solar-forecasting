@@ -15,6 +15,7 @@ from sklearn.linear_model import SGDRegressor
 from sklearn.neural_network import MLPRegressor
 from utils import load_data_input
 import pickle
+
 # %%
 def get_models(models=dict()):
 	# linear models
