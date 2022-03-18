@@ -12,6 +12,7 @@ from sklearn.linear_model import HuberRegressor
 from sklearn.linear_model import LassoLars
 from sklearn.linear_model import PassiveAggressiveRegressor
 from sklearn.linear_model import SGDRegressor
+from sklearn.neural_network import MLPRegressor
 from utils import load_data_input
 import pickle
 # %%
@@ -71,6 +72,7 @@ def prepare_data(sequence):
     return seq_swap.reshape((nb_samples*size1*size2,nb_img))
 # %%
 model= LinearRegression()
+#
 GHI_train = prepare_data(GHI[:,:,15:66,15:66])
 CLS_train = prepare_data(CLS[:,:,15:66,15:66])
 X_train = np.concatenate([GHI_train, CLS_train],axis=1)
@@ -84,16 +86,20 @@ model.intercept_
 filename = 'linearreg_model.sav'
 pickle.dump(model, open(filename, 'wb'))
 # %%
-loaded_model = pickle.load(open(filename, 'rb'))
+filename = 'linearreg_model.sav'
+model = pickle.load(open(filename, 'rb'))
+# %%
 GHI_test,CLS_test,SZA_test,SAA_test,dates_test = load_data_input("X_test_copernicus.npz")
 # %%
 GHI_test_r = prepare_data(GHI_test[:,:,15:66,15:66])
-CLS_test_r = prepare_data(GHI_test[:,:,15:66,15:66])
+CLS_test_r = prepare_data(CLS_test[:,:,15:66,15:66])
 X_test = np.concatenate([GHI_test_r, CLS_test_r], axis=1)
 # %%
 y_predict = model.predict(X_test)
-y_preds = y_predict.reshape(1841,4,51,51)
 # %%
+y_preds = y_predict.reshape(1841,51,51,4)
+y_preds = y_preds.swapaxes(2,3).swapaxes(1,2)
+#%%
 y_preds_2D = get_2D_output(y_preds)
-y_preds_2D.to_csv('linearreg.csv', index=False)
+y_preds_2D.to_csv('linearreg2.csv', index=False)
 # %%
